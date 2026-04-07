@@ -2,7 +2,27 @@
 
 Each answer is a concise, interview-ready explanation. Use them as flash cards; expand with your own project examples when asked to go deeper.
 
+## How to Use This File (Senior Playbook)
+- **Open with structure**: In every system-design answer say, “I’ll cover requirements → scale → architecture → data/state → failure → security → rollout.” Timebox yourself.
+- **Anchor in your experience**: After each key choice add, “In my last RN ERP module we…” even if hypothetical but plausible.
+- **Diagrams first**: Sketch layers and data flow in 30–60 seconds. Keep one legend: rectangles = components, cylinders = data, lightning = events.
+- **Trade-off table**: Give 2 choices + why you picked one + what you gave up.
+- **Mobile constraints call-out**: Mention offline, flaky networks, battery, bundle size, store releases, and platform gaps (iOS BG tasks vs Android Headless JS).
+- **Ops & rollout**: End with monitoring, feature flags, staged rollout/OTA, and kill switches.
+
+## Senior-Level Cheat Sheet by Topic
+- **Architecture**: Clean Arch with strict inward deps; feature-first folders; DI for repos/services; UI stays dumb; domain pure TS. Diagrams: `diagrams/clean-architecture.md`, `diagrams/mvvm-pattern.md`.
+- **State**: Server state → React Query/RTKQ; app state → Redux/Zustand; local UI → component state; derived via selectors; avoid context overuse. Diagram: `diagrams/erp-state-architecture.md`.
+- **Offline**: Queue + local DB + sync loop (pull then push) with idempotency and conflict policy; connectivity listener; freshness labels. Diagram: `diagrams/offline-sync-flow.md`.
+- **API**: Idempotent writes, retry/backoff, request dedupe, token refresh single-flight, ETag/TTL caching, cursor pagination. Diagram: `diagrams/token-refresh.md`.
+- **Security**: Keychain/Keystore for refresh; access in memory/MMKV; cert pinning when needed; secure screens; step-up auth for sensitive flows.
+- **Performance**: Hermes, code split, list virtualization, Reanimated for animations, avoid JS thread blocking, measure TTI/TTFMP.
+- **Real-time**: Single WS with topics, heartbeats + backoff, ordering via seq/ts, reconcile with REST, collapse notifications. Diagram: `diagrams/realtime-websocket.md`.
+- **Modularity**: Feature packages, route registry, shared design system package, linted boundaries, CI cache (turbo/Nx).
+- **ERP Cases**: Tenant isolation everywhere; audit trails; offline approvals; geo + biometrics for attendance; push + WS for managers.
+
 ## 1. App Architecture Patterns (Q1–Q50)
+**How to answer (senior lens):** Start with requirements & scale, sketch Clean Architecture layers, justify foldering and state split, call out testing lanes, close with trade-offs (complexity vs delivery speed).
 1. Q: How would you architect a React Native ERP app for 50k users?
    A: Feature-first Clean Architecture (Presentation → Domain → Data) with strict inward dependencies; offline-first local DB; React Query for server state + Zustand/Redux for app state; API client with retry/backoff and idempotency; push + WebSocket for real-time deltas; CI/CD with OTA + staged store rollout. (See diagram: diagrams/clean-architecture.md)
 2. Q: What is Clean Architecture in RN?
@@ -105,6 +125,7 @@ Each answer is a concise, interview-ready explanation. Use them as flash cards; 
     A: Lead time, change failure rate, onboarding time, crash-free sessions, bundle size, TTI.
 
 ## 2. State Management (Q51–Q100)
+**How to answer:** Bucket data into server/app/UI; map tools (React Query, Redux/Zustand, component state); mention perf guards (memo/selectors), hydration/persistence, and testing strategy.
 51. Q: When to choose Redux over Zustand?
     A: Larger teams/needing middleware/devtools/time travel/strict patterns; Zustand for lightweight ergonomic global state.
 52. Q: React Query vs Redux Toolkit Query?
@@ -207,6 +228,7 @@ Each answer is a concise, interview-ready explanation. Use them as flash cards; 
     A: Clear all slices/caches, cancel queries, drop persistent stores, clear queues, navigate to auth stack.
 
 ## 3. Offline-First Architecture (Q101–Q150)
+**How to answer:** Describe storage choice, sync loop (pull → push), idempotency keys, conflict policy, connectivity detection, and user freshness signals. Call out battery/data limits.
 101. Q: Why offline-first for field workforce?
      A: Unreliable networks; preserves productivity; reduces support tickets; essential for trust.
 102. Q: Local storage options?
@@ -309,6 +331,7 @@ Each answer is a concise, interview-ready explanation. Use them as flash cards; 
      A: Sync success rate, time to consistency, queue age, crash-free sessions offline.
 
 ## 4. API Design & Integration (Q151–Q200)
+**How to answer:** Reliability first (retry/backoff, idempotency, dedupe), pagination choice, caching/ETags, token-refresh single-flight, observability, and limits (429, payload size).
 151. Q: Token refresh interceptor concurrency?
      A: Single refresh gate; queue 401s; replay with new token; guard with `_retried`.
 152. Q: REST vs GraphQL mobile trade-offs?
@@ -411,6 +434,7 @@ Each answer is a concise, interview-ready explanation. Use them as flash cards; 
      A: P99 latency, error rate, retry rate, cache hit rate, battery impact per call.
 
 ## 5. Authentication & Security (Q201–Q250)
+**How to answer:** Token lifecycle/storage, transport security (TLS/pinning), device integrity, sensitive flows (biometrics/PIN), least-privilege scopes, and safe logging/audit.
 201. Q: Secure JWT storage?
      A: Refresh in Keychain/Keystore; access token in memory/encrypted MMKV; short TTL; never AsyncStorage.
 202. Q: Cert pinning need?
@@ -513,6 +537,7 @@ Each answer is a concise, interview-ready explanation. Use them as flash cards; 
      A: Time-to-revoke compromised tokens, security incident count, % endpoints pinned, scan pass rate.
 
 ## 6. Performance Architecture (Q251–Q290)
+**How to answer:** Frame around TTI/TTFMP; address JS/bridge bottlenecks, lists/images/animations; mention Hermes, code-splitting, measurement tools, and perf budgets in CI.
 251. Q: Reducing TTI?
      A: Lazy load screens, code split, prefetch critical data, inline critical fonts, reduce JS bundle.
 252. Q: Minimizing re-render frequency?
@@ -595,6 +620,7 @@ Each answer is a concise, interview-ready explanation. Use them as flash cards; 
      A: TTI, TTFMP, P75/95 FPS, crash-free rate, memory footprint, bundle size, battery per session.
 
 ## 7. Real-Time Architecture (Q291–Q320)
+**How to answer:** WS vs polling, reconnect/heartbeats, ordering + dedupe, backpressure, reconcile with REST, and battery/noise control (collapse keys).
 291. Q: Choosing WS vs polling?
      A: WS for bidirectional/low-latency; polling as fallback; SSE limited on Android.
 292. Q: Reconnect logic essentials?
@@ -657,6 +683,7 @@ Each answer is a concise, interview-ready explanation. Use them as flash cards; 
      A: End-to-end latency, message loss/dup rate, reconnect frequency, battery impact.
 
 ## 8. Micro-Frontend / Modular Architecture (Q321–Q350)
+**How to answer:** Start with “why” (teams/build time), then boundaries (packages, route registry, design system), dependency rules, versioning/rollout, and trade-offs (overhead vs speed).
 321. Q: Why modularize RN app?
      A: Parallel development, faster builds, clearer ownership, smaller bundles, optional loading.
 322. Q: Techniques for code splitting?
@@ -719,6 +746,7 @@ Each answer is a concise, interview-ready explanation. Use them as flash cards; 
      A: Small teams/simple app; overhead outweighs benefit; premature modularization slows delivery.
 
 ## 9. ERP / Enterprise Case Studies (Q351–Q420)
+**How to answer:** Restate scale/constraints, sketch data flow, highlight offline + tenant isolation, conflict/idempotency, security/audit, and manager visibility. End with metrics/KPIs.
 351. Q: Design attendance module offline-first?
      A: Local queue + DB, geo fence, biometric check, sync with idempotency, manager dashboards with WS.
 352. Q: Payroll calculator offline?
@@ -861,6 +889,7 @@ Each answer is a concise, interview-ready explanation. Use them as flash cards; 
      A: Task completion rate, sync reliability, crash-free sessions, P75 latency, support tickets volume.
 
 ## 10. System Design Interview Framework (Q421–Q500)
+**How to answer:** Use a fixed template: clarify → scale → high-level → deep dive → failures → security → rollout → metrics → recap. Timebox and park tangents.
 421. Q: First 5 minutes of interview?
      A: Clarify requirements, users, scale, constraints, success metrics; restate scope.
 422. Q: How to estimate scale quickly?
