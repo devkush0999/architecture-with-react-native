@@ -1,68 +1,68 @@
-# 500 React Native System Design & Architecture Q&A ($$–$$ LPA, 3 YOE)
+# 500 React Native System Design & Architecture Q&A (10–12 LPA, 3 YOE)
 
 Each answer is a concise, interview-ready explanation. Use them as flash cards; expand with your own project examples when asked to go deeper.
 
 ## 1. App Architecture Patterns (Q1–Q50)
 1. Q: How would you architect a React Native ERP app for 50k users?
-   A: Feature-first Clean Architecture, offline-first local DB, React Query for server state, Zustand/Redux for app state, modular services, push+WS for critical updates.
+   A: Feature-first Clean Architecture (Presentation → Domain → Data) with strict inward dependencies; offline-first local DB; React Query for server state + Zustand/Redux for app state; API client with retry/backoff and idempotency; push + WebSocket for real-time deltas; CI/CD with OTA + staged store rollout. (See diagram: diagrams/clean-architecture.md)
 2. Q: What is Clean Architecture in RN?
-   A: Presentation–Domain–Data layers; dependencies point inward; Domain is pure TS; Data implements repo interfaces; Presentation uses view models/hooks.
+   A: Three layers: Presentation (screens/view models), Domain (use cases/entities, pure TS), Data (repos/adapters: API, DB, cache). Only Domain is dependency-free. Use DI to inject implementations so tests can mock Data. (Diagram: diagrams/clean-architecture.md)
 3. Q: Difference MVVM vs MVC vs MVP?
-   A: MVC couples view/controller; MVP presenter still view-aware; MVVM uses observable state decoupled from view—best testability in RN.
+   A: MVC couples controller to view → brittle at scale; MVP improves separation but presenters still manipulate views; MVVM exposes observable state/actions, keeping UI declarative and testable—best fit with hooks/stores in RN.
 4. Q: Why feature-based folders over type-based?
-   A: Co-locates screens/components/store/api per feature, improving modularity, onboarding, and avoiding mega folders.
+   A: Co-locates screens/components/store/api per feature, enabling modular ownership, faster onboarding, and local refactors without touching unrelated code.
 5. Q: Repository pattern purpose?
-   A: Decouple UI from data sources; switch cache/local/network without touching UI; improves testability/offline behavior.
+   A: UI calls repo interfaces; repos choose cache/local DB/network and map DTOs to domain models. This isolates data sources, enables offline-first and makes business logic testable.
 6. Q: Where to put navigation in Clean Arch?
-   A: Presentation layer; treat navigation as UI concern; inject coordinators/navigator hooks.
+   A: Presentation layer; treat navigators/coordinators as UI concern. Domain must not import navigation.
 7. Q: How to enforce layer boundaries?
-   A: TS path aliases + lint rules; Domain has no RN/axios imports; Data only depends on Domain interfaces.
+   A: TS path aliases + eslint-plugin-boundaries; CI check for forbidden imports; Domain forbids RN/axios/SQLite imports; Data only sees Domain interfaces.
 8. Q: When choose MVC in RN?
-   A: Rarely; only for tiny prototypes where ceremony isn’t justified.
+   A: Only for throwaway prototypes/POCs where setup overhead must be minimal; otherwise prefer MVVM.
 9. Q: Benefit of ViewModel (MVVM) in RN?
-   A: Holds UI state/logic, lifecycle-aware, testable without rendering components.
+   A: Holds UI state + commands, survives re-render, testable without rendering components; keeps components dumb/presentational.
 10. Q: How to model use cases?
-    A: Domain functions/classes encapsulating business actions, returning plain types/Result objects; injected repos.
+    A: Plain functions/classes in Domain, each performing a business action; accept repositories/gateways as interfaces; return Result/Either to avoid throwing; no platform imports.
 11. Q: Why avoid fat components?
-    A: Hard to test/reuse; split into hooks + presentational components.
+    A: Fat components hide business logic and are hard to test/reuse; split into hooks (logic) + presentational components (render only).
 12. Q: What is a service locator anti-pattern?
-    A: Global mutable registry for dependencies; hides wiring and complicates tests; prefer DI container or explicit props.
+    A: Global registry for dependencies; hides wiring and complicates tests. Prefer explicit DI container or constructor injection.
 13. Q: Pros/cons of monorepo for RN + backend?
-    A: Pros shared types, tooling; cons heavy CI, coupling; need workspaces and ownership boundaries.
+    A: Pros: shared types, unified tooling, atomic PRs. Cons: heavier CI, coupling risk; require workspaces, clear ownership, caching (turbo/Nx).
 14. Q: How to share types between app and backend safely?
-    A: Publish versioned shared package; never import backend code directly; enforce semantic versioning.
+    A: Publish versioned shared package (npm workspace); semantic versioning; avoid importing backend code directly; use codegen for API clients.
 15. Q: Where to keep feature flags?
-    A: Config service in Data layer; cache locally; expose typed hooks; keep eval in Presentation/Domain logic.
+    A: Config/remote-config service in Data layer; cache locally; expose typed hooks; evaluate flags in Presentation/Domain logic, not in components directly.
 16. Q: How to design plugin-like modules?
-    A: Define contract interfaces, dynamic import bundles, register routes/components in a manifest.
+    A: Define interfaces/registries for routes/screens; modules register via manifest; dynamic import bundles; contracts enforced via TS types.
 17. Q: How to isolate experimental code?
-    A: Feature toggles + dependency injection; keep behind interfaces so removal is easy.
+    A: Guard with feature flags + DI; keep behind interfaces; delete branch easily when experiment ends.
 18. Q: What is onion architecture difference?
-    A: Similar to Clean; emphasizes domain core, concentric layers; rules identical for dependency direction.
+    A: Concentric rings around domain; same rule as Clean Architecture: dependencies point inward. Often identical in practice.
 19. Q: CQRS use in mobile?
-    A: Separate read models (cached/query) from write commands; helpful with optimistic UIs and sync.
+    A: Split read models (cached/query) from write commands; pairs well with optimistic UI + sync queues; reduces overfetching.
 20. Q: Event sourcing in RN—when?
-    A: Rare; only when auditability offline is critical; store events, rebuild state locally.
+    A: Only when offline auditability is critical (e.g., financial approvals). Store events locally, rebuild projections; higher complexity.
 21. Q: Layer for analytics?
-    A: Cross-cutting; wrap SDK in adapter in Data; expose typed tracker in Domain/Presentation.
+    A: Adapter in Data wrapping SDK; Domain defines events; Presentation calls tracker via interface—keeps SDK out of UI logic.
 22. Q: Handling app configuration per environment?
-    A: .env files + build-time config, plus remote config service; avoid baking secrets in bundle.
+    A: Build-time env files for endpoints/ids; runtime remote config for switches; never hardcode secrets; inject into DI container.
 23. Q: Multi-brand white-label structure?
-    A: Theming + config packages; brand-specific assets; dependency injection for brand services; avoid code forks.
+    A: Brand config package (theme, assets, routes toggles); DI per brand; avoid code forks; use runtime theme tokens.
 24. Q: Advantages of modular navigation stacks?
-    A: Teams ship independently; tree shaking of unused stacks; clearer ownership.
+    A: Teams own isolated stacks; lazy-load routes; tree-shake unused flows; clearer deep link handling.
 25. Q: When to use turborepo/Nx for RN?
-    A: Multi-package setup, shared design system, native modules; faster caching & parallel tasks.
+    A: Multi-package design system/native modules/backend shared contracts; need caching/parallelism; reduces rebuild times.
 26. Q: Why keep domain pure TS?
-    A: Deterministic, fast tests, zero RN/IO dependencies; portable to web/backend.
+    A: Fast deterministic tests, zero RN/IO coupling, reusable across platforms; simplifies dependency graph.
 27. Q: Interface segregation in mobile?
-    A: Keep repos small, purpose-driven; consumers depend on minimal contracts; reduces mock complexity.
+    A: Small, focused repository interfaces per aggregate; consumers depend on minimal surface; fewer mocks and tighter contracts.
 28. Q: How to avoid God repository?
-    A: Split by aggregate/feature; compose in service layer; enforce lint boundaries.
+    A: Split by aggregate/feature; compose via service layer; lint boundaries; codeowners per repo file.
 29. Q: Compose vs inherit in services?
-    A: Prefer composition for flexibility/testing; avoid deep inheritance in JS.
+    A: Prefer composition of behaviors (e.g., caching + logging decorators) to avoid fragile inheritance trees.
 30. Q: Folder naming for clarity?
-    A: `features/<feature>/{screens,components,store,api,types}` + `shared/` + `services/` + `navigation/`.
+    A: `features/<feature>/{screens,components,store,api,types}` plus `shared/`, `services/`, `navigation/`; prevents type-based sprawl and aligns with ownership.
 31. Q: How to document architecture?
     A: ADRs for decisions, diagrams (C4), README per feature; keep close to code.
 32. Q: What are ADRs?
